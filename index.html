@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>リクレイム（仮）反応テスト版 - スマホ時間を、取り戻す</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  body { background:#0b0b10; color:#fff; font-family:"Hiragino Sans","Noto Sans JP",sans-serif; display:flex; justify-content:center; min-height:100vh; }
+  .phone { width:100%; max-width:420px; min-height:100vh; background:linear-gradient(180deg,#14141d 0%,#0d0d13 100%); position:relative; overflow:hidden; display:flex; flex-direction:column; }
+  @media (min-width:480px){ .phone{ min-height:92vh; margin:4vh 0; border-radius:36px; border:1px solid #2a2a35; box-shadow:0 30px 80px rgba(0,0,0,.6);} }
+  .progress { height:5px; background:#26262f; margin:18px 20px 0; border-radius:3px; overflow:hidden; }
+  .progress > div { height:100%; background:linear-gradient(90deg,#ff7ab6,#ffb86b); width:5%; transition:width .4s; border-radius:3px; }
+  .screen { display:none; flex:1; flex-direction:column; padding:26px 24px 30px; animation:fade .35s ease; }
+  .screen.active { display:flex; }
+  @keyframes fade { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;} }
+  h1 { font-size:27px; line-height:1.45; font-weight:800; }
+  h2 { font-size:23px; line-height:1.5; font-weight:800; }
+  .sub { color:#a7a7b5; font-size:14px; line-height:1.8; margin-top:12px; }
+  .small { color:#7c7c8a; font-size:11.5px; line-height:1.7; margin-top:14px; }
+  .brainwrap { display:flex; flex-direction:column; align-items:center; margin:26px 0 8px; }
+  .stage-label { margin-top:10px; font-size:14px; font-weight:700; }
+  .btn { margin-top:auto; background:linear-gradient(90deg,#ff5f9e,#ff8a5c); color:#fff; border:none; border-radius:16px; padding:17px; font-size:16.5px; font-weight:800; cursor:pointer; width:100%; }
+  .btn:active { transform:scale(.985); }
+  .btn.ghost { background:#23232e; color:#d8d8e2; margin-top:10px; }
+  .slider-row { margin-top:30px; }
+  input[type=range]{ width:100%; height:34px; accent-color:#ff5f9e; }
+  .big-num { font-size:52px; font-weight:900; text-align:center; margin-top:6px; }
+  .big-num span { font-size:20px; font-weight:700; color:#c9c9d4; }
+  .choices { display:flex; flex-direction:column; gap:11px; margin-top:24px; }
+  .choice { background:#1d1d27; border:1.5px solid #2c2c3a; color:#eee; border-radius:14px; padding:16px 18px; font-size:16px; font-weight:600; text-align:left; cursor:pointer; }
+  .choice.sel { border-color:#ff5f9e; background:#2a1a26; }
+  .result-num { font-size:60px; font-weight:900; line-height:1.1; margin-top:16px; }
+  .result-num .unit { font-size:22px; color:#c9c9d4; font-weight:700; }
+  .accent { color:#ff5f9e; } .accent2 { color:#ffb86b; } .good { color:#4ade80; }
+  .dots { display:flex; flex-wrap:wrap; gap:3.5px; margin-top:20px; max-height:190px; overflow:hidden; }
+  .dot { width:7px; height:7px; border-radius:50%; background:#33333f; }
+  .dot.phone { background:#ff5f9e; } .dot.free { background:#4ade80; }
+  .legend { display:flex; gap:16px; font-size:12px; color:#a7a7b5; margin-top:12px; }
+  .legend i { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; }
+  .hold { position:relative; overflow:hidden; background:#23232e; border:1.5px solid #ff5f9e; }
+  .hold .fill { position:absolute; inset:0; width:0%; background:linear-gradient(90deg,#ff5f9e,#ff8a5c); }
+  .hold span { position:relative; z-index:1; }
+  .plan { background:#1d1d27; border:1.5px solid #2c2c3a; border-radius:16px; padding:18px; margin-top:14px; cursor:pointer; position:relative; }
+  .plan.sel { border-color:#ff5f9e; background:#2a1a26; }
+  .plan .name { font-size:16px; font-weight:800; }
+  .plan .price { font-size:22px; font-weight:900; margin-top:4px; }
+  .plan .note { color:#a7a7b5; font-size:12.5px; margin-top:3px; }
+  .badge { position:absolute; top:-10px; right:14px; background:#ff5f9e; color:#fff; font-size:11px; font-weight:800; padding:3px 9px; border-radius:20px; }
+  .card { background:#1d1d27; border:1px solid #2c2c3a; border-radius:16px; padding:16px 18px; margin-top:12px; }
+  .row { display:flex; justify-content:space-between; align-items:center; }
+  .timer { font-size:46px; font-weight:900; text-align:center; margin:10px 0 4px; font-variant-numeric:tabular-nums; }
+  .bar { height:9px; background:#2c2c3a; border-radius:5px; overflow:hidden; margin-top:8px; }
+  .bar > div { height:100%; border-radius:5px; }
+  .center { text-align:center; }
+  .spin { width:52px; height:52px; border-radius:50%; border:5px solid #2c2c3a; border-top-color:#ff5f9e; margin:60px auto 20px; animation:sp 1s linear infinite; }
+  @keyframes sp { to { transform:rotate(360deg);} }
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="progress"><div id="pbar"></div></div>
+
+  <!-- 0: 表紙＋スライダー体験 -->
+  <section class="screen active" id="s0">
+    <h1>スマホを見るたび、<br>キミの脳は弱っていく。</h1>
+    <p class="sub">下のスライダーを、1日のスマホ時間に合わせてみて。</p>
+    <div class="brainwrap">
+      <div id="brain0"></div>
+      <div class="stage-label" id="stage0"></div>
+    </div>
+    <div class="slider-row">
+      <div class="big-num"><span id="hoursVal">5</span><span> 時間 / 日</span></div>
+      <input type="range" id="hours" min="1" max="12" step="0.5" value="5">
+    </div>
+    <button class="btn" onclick="go('s1',12)">つづける</button>
+    <p class="small">「リクレイム（仮）」試作版。脳キャラは自作です。数字は次の画面で、あなたの回答から試算します。</p>
+  </section>
+
+  <!-- 1: 年齢 -->
+  <section class="screen" id="s1">
+    <h2>あなたの年齢は？</h2>
+    <p class="sub">人生換算に使います。</p>
+    <div class="slider-row">
+      <div class="big-num"><span id="ageVal">30</span><span> 歳</span></div>
+      <input type="range" id="age" min="15" max="70" step="1" value="30">
+    </div>
+    <button class="btn" onclick="go('s2',24)">つづける</button>
+  </section>
+
+  <!-- 2: 朝 -->
+  <section class="screen" id="s2">
+    <h2>朝起きて、どれくらいでスマホを見る？</h2>
+    <div class="choices" data-key="wake">
+      <button class="choice">目覚ましを止めて、そのまま</button>
+      <button class="choice">5分以内</button>
+      <button class="choice">30分以内</button>
+      <button class="choice">1時間は見ない</button>
+    </div>
+    <button class="btn" onclick="go('s3',36)">つづける</button>
+  </section>
+
+  <!-- 3: アプリ -->
+  <section class="screen" id="s3">
+    <h2>いちばん時間を使っているのは？</h2>
+    <div class="choices" data-key="app">
+      <button class="choice">SNS（X / Instagram など）</button>
+      <button class="choice">動画（YouTube / TikTok など）</button>
+      <button class="choice">ゲーム</button>
+      <button class="choice">ニュース・その他</button>
+    </div>
+    <button class="btn" onclick="go('s4',48)">つづける</button>
+  </section>
+
+  <!-- 4: 寝る前 -->
+  <section class="screen" id="s4">
+    <h2>寝る直前までスマホを見ている？</h2>
+    <div class="choices" data-key="bed">
+      <button class="choice">毎日。気づくと1時間以上</button>
+      <button class="choice">ほぼ毎日、30分くらい</button>
+      <button class="choice">たまに</button>
+      <button class="choice">寝る前は見ない</button>
+    </div>
+    <button class="btn" onclick="calcAndShow()">結果を見る</button>
+  </section>
+
+  <!-- 5: 計算中 -->
+  <section class="screen" id="s5">
+    <div class="spin"></div>
+    <h2 class="center">あなたの「失っている時間」を計算中…</h2>
+    <p class="sub center">1日の使用時間 × 残りの人生 で換算しています。</p>
+  </section>
+
+  <!-- 6: 結果1 年間 -->
+  <section class="screen" id="s6">
+    <h2>あなたは1年で、</h2>
+    <div class="result-num"><span id="yearHours">0</span><span class="unit"> 時間</span></div>
+    <p class="sub">をスマホに使っています。これは起きている時間の約 <b class="accent" id="wakePct">0</b>% です。</p>
+    <div class="brainwrap"><div id="brain6"></div><div class="stage-label" id="stage6"></div></div>
+    <button class="btn" onclick="go('s7',72)">人生では、どれくらい？</button>
+    <p class="small">計算式：1日の使用時間 × 365日。起きている時間は1日16時間として計算。</p>
+  </section>
+
+  <!-- 7: 結果2 人生＋ドット -->
+  <section class="screen" id="s7">
+    <h2>このまま行くと、残りの人生のうち</h2>
+    <div class="result-num accent"><span id="lifeYears">0</span><span class="unit"> 年分</span></div>
+    <p class="sub">をスマホ画面の中で過ごす計算です。点は、残りの人生の「1か月」です。</p>
+    <div class="dots" id="dots"></div>
+    <div class="legend"><span><i style="background:#ff5f9e"></i>スマホに使う月</span><span><i style="background:#33333f"></i>残りの月</span></div>
+    <button class="btn" onclick="go('s8',82)">取り戻せる時間を見る</button>
+    <p class="small">計算式：1日の使用時間 ×（80 − 年齢）÷ 24。寿命80歳・今のペースが続く前提の試算です。脅しではなく、前提つきの単純計算です。</p>
+  </section>
+
+  <!-- 8: 結果3 取り戻せる -->
+  <section class="screen" id="s8">
+    <h2>使用時間を半分にできたら、</h2>
+    <div class="result-num good"><span id="backYears">0</span><span class="unit"> 年分</span></div>
+    <p class="sub">を取り戻せます。1年あたり <b class="good" id="backHours">0</b> 時間。本なら約 <b class="good" id="backBooks">0</b> 冊分の読書時間です。</p>
+    <h2 style="margin-top:22px;">目標はどうする？</h2>
+    <div class="choices" data-key="goal">
+      <button class="choice sel" data-factor="0.5">半分にする</button>
+      <button class="choice" data-factor="0.7">3割減らす</button>
+      <button class="choice" data-factor="0.85">まず少しだけ減らす</button>
+    </div>
+    <button class="btn" onclick="go('s9',90)">決意する</button>
+    <p class="small">本の換算は1冊6時間として計算。目標はいつでも変更できます。</p>
+  </section>
+
+  <!-- 9: 長押しコミット -->
+  <section class="screen" id="s9">
+    <h2>本気なら、<br>3秒押し続けて。</h2>
+    <div class="brainwrap"><div id="brain9"></div></div>
+    <p class="sub center">長押ししている間だけ、脳が回復していきます。</p>
+    <button class="btn hold" id="holdBtn"><span class="fill" id="holdFill"></span><span>押し続けて誓う</span></button>
+    <p class="small">製品版では、ここが「集中モードの開始」と連動します。試作版では演出のみです。</p>
+  </section>
+
+  <!-- 10: ペイウォール -->
+  <section class="screen" id="s10">
+    <h2>取り戻す仕組みを、<br>手に入れる。</h2>
+    <p class="sub">使用時間の見える化／使いすぎアプリのブロック／毎週のふり返りレポート。</p>
+    <div class="plan sel" id="planYear" onclick="selPlan('year')">
+      <div class="badge">3日間 無料</div>
+      <div class="name">年間プラン</div>
+      <div class="price">¥4,800 <span style="font-size:13px;color:#a7a7b5;">/ 年（月あたり¥400）</span></div>
+      <div class="note">いちばん選ばれています。月額より44%お得。</div>
+    </div>
+    <div class="plan" id="planMonth" onclick="selPlan('month')">
+      <div class="name">月額プラン</div>
+      <div class="price">¥720 <span style="font-size:13px;color:#a7a7b5;">/ 月</span></div>
+      <div class="note">無料トライアルなし。いつでも解約できます。</div>
+    </div>
+    <button class="btn" onclick="go('s11',100)">無料で始める（試作）</button>
+    <p class="small">これは試作画面です。実際の課金は発生しません。製品版では価格・トライアル条件・解約方法を購入前に明示します。大学や研究機関のロゴを使った権威付けはしません（無関係なロゴ表示は虚偽表示になりうるため）。</p>
+  </section>
+
+  <!-- 11: ホーム画面モック -->
+  <section class="screen" id="s11">
+    <h2>おかえり。今日から1日目。</h2>
+    <div class="brainwrap" style="margin:14px 0 2px;"><div id="brain11"></div><div class="stage-label" id="stage11"></div></div>
+    <div class="card">
+      <div class="row"><span style="color:#a7a7b5;font-size:13px;">今日の使用時間（デモ）</span><b>1時間12分</b></div>
+      <div class="bar"><div style="width:24%;background:#4ade80;"></div></div>
+      <div class="row" style="margin-top:8px;"><span style="color:#a7a7b5;font-size:13px;">目標</span><b id="goalLabel">2.5時間以内</b></div>
+    </div>
+    <div class="card">
+      <div style="font-weight:800;">集中タイマー</div>
+      <div class="timer" id="timer">25:00</div>
+      <button class="btn" id="timerBtn" onclick="toggleTimer()">集中をはじめる</button>
+    </div>
+    <div class="card">
+      <div class="row"><span>連続達成</span><b class="accent2">1日目</b></div>
+      <div class="row" style="margin-top:6px;"><span>取り戻した時間（累計デモ）</span><b class="good">+0時間</b></div>
+    </div>
+    <p class="small">試作はここまで。製品版では iPhone のスクリーンタイム連携で実測値を取得します（要 Screen Time 系APIの許可）。</p>
+  
+    <div class="card">
+      <div style="font-weight:800;">触ってみた感想を聞かせてください</div>
+      <p class="small">これは反応テスト用の試作です。最後まで触った感想が、次の開発の判断材料になります（1分・3問）。</p>
+      <a class="btn" id="feedbackBtn" href="#" target="_blank" rel="noopener" style="display:block;text-align:center;text-decoration:none;">感想を送る</a>
+    </div>
+</section>
+</div>
+
+<script>
+  var state = { hours:5, age:30, goalFactor:0.5, plan:'year' };
+  var screens = ['s0','s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','s11'];
+
+  function brainSVG(stage){
+    // stage 0=元気 1=普通 2=疲れ 3=かなり弱る 4=腐りかけ (自作キャラ)
+    var fills = ['#ff9ec7','#f78fb8','#d97ba6','#9d7ba8','#6f8f7a'];
+    var eyes  = [
+      '<circle cx="82" cy="96" r="6" fill="#2b1220"/><circle cx="118" cy="96" r="6" fill="#2b1220"/>',
+      '<circle cx="82" cy="96" r="5" fill="#2b1220"/><circle cx="118" cy="96" r="5" fill="#2b1220"/>',
+      '<path d="M74 98 q8 5 16 0" stroke="#2b1220" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M110 98 q8 5 16 0" stroke="#2b1220" stroke-width="4" fill="none" stroke-linecap="round"/>',
+      '<path d="M75 92 l14 10 M89 92 l-14 10" stroke="#2b1220" stroke-width="4" stroke-linecap="round"/><path d="M111 92 l14 10 M125 92 l-14 10" stroke="#2b1220" stroke-width="4" stroke-linecap="round"/>',
+      '<path d="M75 92 l14 10 M89 92 l-14 10" stroke="#1d241c" stroke-width="4" stroke-linecap="round"/><path d="M111 92 l14 10 M125 92 l-14 10" stroke="#1d241c" stroke-width="4" stroke-linecap="round"/>'
+    ];
+    var mouths = [
+      '<path d="M86 118 q14 12 28 0" stroke="#2b1220" stroke-width="4.5" fill="none" stroke-linecap="round"/>',
+      '<path d="M88 120 q12 7 24 0" stroke="#2b1220" stroke-width="4.5" fill="none" stroke-linecap="round"/>',
+      '<line x1="88" y1="122" x2="112" y2="122" stroke="#2b1220" stroke-width="4.5" stroke-linecap="round"/>',
+      '<path d="M88 126 q12 -9 24 0" stroke="#2b1220" stroke-width="4.5" fill="none" stroke-linecap="round"/>',
+      '<ellipse cx="100" cy="126" rx="7" ry="9" fill="#1d241c"/>'
+    ];
+    var cracks = stage>=3 ? '<path d="M52 44 l12 14 l-8 10 M150 40 l-10 16 l7 9 M100 26 l-4 14" stroke="rgba(20,10,16,.45)" stroke-width="3" fill="none" stroke-linecap="round"/>' : '';
+    var sweat = stage===2 ? '<path d="M168 74 q7 10 0 16 q-7 -6 0 -16" fill="#7dd3fc"/>' : '';
+    return '<svg width="190" height="165" viewBox="0 0 200 165">'
+      + '<path d="M100 14 c10 -10 30 -8 38 4 c16 -4 32 8 33 22 c13 6 17 22 9 33 c9 12 4 30 -9 36 c2 16 -12 30 -27 28 c-6 12 -24 16 -36 8 c-10 8 -28 5 -35 -6 c-16 2 -30 -10 -29 -24 c-13 -7 -16 -25 -6 -36 c-6 -14 3 -30 17 -33 c3 -15 20 -25 34 -19 c3 -6 7 -10 11 -13 z" fill="'+fills[stage]+'" stroke="rgba(0,0,0,.25)" stroke-width="2"/>'
+      + '<path d="M62 52 q14 -10 26 -2 M104 40 q14 -8 26 0 M58 92 q12 8 24 4" stroke="rgba(0,0,0,.18)" stroke-width="4" fill="none" stroke-linecap="round"/>'
+      + cracks + eyes[stage] + mouths[stage] + sweat + '</svg>';
+  }
+  var stageNames = ['元気いっぱい','まあまあ','少し疲れてる','かなり弱ってる','腐りかけ…'];
+  function stageFromHours(h){ if(h<=2) return 0; if(h<=4) return 1; if(h<=6) return 2; if(h<=9) return 3; return 4; }
+  function setBrain(id, labelId, stage){
+    document.getElementById(id).innerHTML = brainSVG(stage);
+    if(labelId) document.getElementById(labelId).textContent = stageNames[stage];
+  }
+  function go(id, pct){
+    screens.forEach(function(s){ document.getElementById(s).classList.remove('active'); });
+    document.getElementById(id).classList.add('active');
+    if(pct) document.getElementById('pbar').style.width = pct + '%';
+    window.scrollTo(0,0);
+  }
+  var hoursEl = document.getElementById('hours');
+  function syncHours(){
+    state.hours = parseFloat(hoursEl.value);
+    document.getElementById('hoursVal').textContent = state.hours;
+    setBrain('brain0','stage0', stageFromHours(state.hours));
+  }
+  hoursEl.addEventListener('input', syncHours); syncHours();
+
+  var ageEl = document.getElementById('age');
+  ageEl.addEventListener('input', function(){ state.age = parseInt(ageEl.value,10); document.getElementById('ageVal').textContent = state.age; });
+
+  document.querySelectorAll('.choices').forEach(function(group){
+    group.querySelectorAll('.choice').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        group.querySelectorAll('.choice').forEach(function(b){ b.classList.remove('sel'); });
+        btn.classList.add('sel');
+        if(btn.dataset.factor) state.goalFactor = parseFloat(btn.dataset.factor);
+      });
+    });
+  });
+
+  function calcAndShow(){
+    go('s5',60);
+    setTimeout(function(){
+      var h = state.hours, age = state.age;
+      var yearHours = Math.round(h*365);
+      var wakePct = Math.round(h/16*100);
+      var lifeYears = h*(80-age)/24;
+      var backYears = lifeYears*(1-state.goalFactor);
+      var backHours = Math.round(yearHours*(1-state.goalFactor));
+      document.getElementById('yearHours').textContent = yearHours.toLocaleString();
+      document.getElementById('wakePct').textContent = wakePct;
+      document.getElementById('lifeYears').textContent = lifeYears.toFixed(1);
+      document.getElementById('backYears').textContent = backYears.toFixed(1);
+      document.getElementById('backHours').textContent = backHours.toLocaleString();
+      document.getElementById('backBooks').textContent = Math.round(backHours/6).toLocaleString();
+      document.getElementById('goalLabel').textContent = (Math.round(h*state.goalFactor*10)/10) + '時間以内';
+      setBrain('brain6','stage6', stageFromHours(h));
+      setBrain('brain9', null, stageFromHours(h));
+      // ドット: 残り人生の月
+      var months = (80-age)*12;
+      var phoneMonths = Math.round(months * h/24);
+      var html = '';
+      for(var i=0;i<months;i++){ html += '<div class="dot' + (i<phoneMonths ? ' phone' : '') + '"></div>'; }
+      document.getElementById('dots').innerHTML = html;
+      go('s6',66);
+    }, 1400);
+  }
+
+  function selPlan(p){
+    state.plan = p;
+    document.getElementById('planYear').classList.toggle('sel', p==='year');
+    document.getElementById('planMonth').classList.toggle('sel', p==='month');
+  }
+
+  // 長押しコミット
+  var holdBtn = document.getElementById('holdBtn'), holdFill = document.getElementById('holdFill');
+  var holdStart = null, holdRAF = null;
+  function holdStep(){
+    var p = Math.min(100, (Date.now()-holdStart)/30);
+    holdFill.style.width = p + '%';
+    var st = stageFromHours(state.hours);
+    var rec = Math.max(0, st - Math.floor(p/30));
+    setBrain('brain9', null, rec);
+    if(p>=100){ go('s10',95); return; }
+    holdRAF = requestAnimationFrame(holdStep);
+  }
+  function holdEnd(){
+    if(holdRAF) cancelAnimationFrame(holdRAF);
+    holdFill.style.width = '0%';
+    setBrain('brain9', null, stageFromHours(state.hours));
+  }
+  holdBtn.addEventListener('pointerdown', function(e){ e.preventDefault(); holdStart = Date.now(); holdStep(); });
+  holdBtn.addEventListener('pointerup', holdEnd);
+  holdBtn.addEventListener('pointerleave', holdEnd);
+
+  // 集中タイマー (デモ)
+  var tSec = 25*60, tRun = false, tInt = null;
+  function renderTimer(){
+    var m = String(Math.floor(tSec/60)).padStart(2,'0'), s = String(tSec%60).padStart(2,'0');
+    document.getElementById('timer').textContent = m + ':' + s;
+  }
+  function toggleTimer(){
+    var btn = document.getElementById('timerBtn');
+    if(!tRun){
+      tRun = true; btn.textContent = '一時停止';
+      tInt = setInterval(function(){ if(tSec>0){ tSec--; renderTimer(); } else { clearInterval(tInt); tRun=false; btn.textContent='集中をはじめる'; tSec=25*60; renderTimer(); } }, 1000);
+    } else {
+      tRun = false; btn.textContent = '集中をはじめる'; clearInterval(tInt);
+    }
+  }
+  setBrain('brain11','stage11', 1);
+</script>
+
+<script>
+/* ===== 反応テスト計測（テスト版のみ） =====
+   送信先は Google フォームの formResponse エンドポイント。
+   送るのはイベント名と匿名セッションIDだけ。入力した年齢・時間などの回答内容は送信しない。
+   フォーム1は event / session の2フィールド構成のため、entry ID は2つに分けて送る。 */
+var TRACK_FORM_URL = 'https://docs.google.com/forms/d/1-aPdeeyJYgvCsBtu6AHBBnFwKslyyANTfGOcy6TT2wk/formResponse';
+var TRACK_ENTRY_EVENT   = 'entry.757169192';    // フォーム1「event」フィールド
+var TRACK_ENTRY_SESSION = 'entry.1256982082';   // フォーム1「session」フィールド
+var FEEDBACK_URL   = 'https://docs.google.com/forms/d/e/1FAIpQLSfsYJ5FW8lGCb29IMkVqqkZaGdRZNVWjI4jRgNKht9MDwZS8A/viewform';
+
+var __sid = sessionStorage.getItem('reclaim_sid');
+if(!__sid){ __sid = 's' + Date.now().toString(36) + Math.floor(Math.random()*1e6).toString(36); sessionStorage.setItem('reclaim_sid', __sid); }
+function track(ev){
+  if(!TRACK_FORM_URL || !TRACK_ENTRY_EVENT || !TRACK_ENTRY_SESSION) return;
+  try{
+    var body = new URLSearchParams();
+    body.append(TRACK_ENTRY_EVENT, ev);
+    body.append(TRACK_ENTRY_SESSION, __sid);
+    if(navigator.sendBeacon){ navigator.sendBeacon(TRACK_FORM_URL, body); }
+    else { fetch(TRACK_FORM_URL, {method:'POST', mode:'no-cors', body: body}); }
+  }catch(e){}
+}
+var __origGo = go;
+go = function(id, pct){
+  __origGo(id, pct);
+  track('view_' + id);
+  if(id === 's10') track('paywall_reached');
+  if(id === 's11') track('completed');
+};
+track('view_s0');
+var __fb = document.getElementById('feedbackBtn');
+if(__fb){
+  if(FEEDBACK_URL) __fb.href = FEEDBACK_URL;
+  __fb.addEventListener('click', function(){ track('feedback_click'); });
+}
+</script>
+</body>
+</html>
