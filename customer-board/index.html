@@ -125,7 +125,7 @@
 </div>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 import { getFirestore, collection, doc, setDoc, deleteDoc, onSnapshot, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
 var firebaseConfig = {
@@ -313,7 +313,7 @@ document.getElementById("accessSave").onclick = function () {
 };
 
 document.getElementById("login").onclick = function () {
-  signInWithPopup(auth, new GoogleAuthProvider()).catch(function (e) { document.getElementById("gateMsg").textContent = "ログインできませんでした: " + e.message; });
+  signInWithRedirect(auth, new GoogleAuthProvider()).catch(function (e) { document.getElementById("gateMsg").textContent = "ログインできませんでした: " + e.message; });
 };
 document.getElementById("logout").onclick = function () { signOut(auth); };
 
